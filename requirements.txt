@@ -1,0 +1,11 @@
+azure-cognitiveservices-speech
+azure-identity
+flask
+flask-socketio>=5.5.1
+python-dotenv
+openai>=1.76.0
+pytz
+requests
+torch>=2.6.0
+numpy
+torchaudio>=2.6.0
