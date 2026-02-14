@@ -58,7 +58,7 @@ ice_server_password = os.getenv('ICE_SERVER_PASSWORD')  # The ICE password
 # Const variables
 enable_websockets = True  # Enable websockets between client and server for real-time communication optimization
 enable_vad = False  # Enable voice activity detection (VAD) for interrupting the avatar speaking
-enable_token_auth_for_speech = False  # Enable token authentication for speech service
+enable_token_auth_for_speech = True  # Enable token authentication for speech service (required for role-based auth)
 default_tts_voice = 'en-US-JennyMultilingualV2Neural'  # Default TTS voice
 sentence_level_punctuations = ['.', '?', '!', ':', ';', '。', '？', '！', '：', '；']  # Punctuations that indicate the end of a sentence
 enable_quick_reply = False  # Enable quick reply for certain chat models which take longer time to respond
@@ -70,11 +70,22 @@ repeat_speaking_sentence_after_reconnection = True  # Repeat the speaking senten
 client_contexts = {}  # Client contexts
 speech_token = None  # Speech token
 ice_token = None  # ICE token
-if azure_openai_endpoint and azure_openai_api_key:
-    azure_openai = AzureOpenAI(
-        azure_endpoint=azure_openai_endpoint,
-        api_version='2024-12-01-preview',
-        api_key=azure_openai_api_key)
+if azure_openai_endpoint:
+    # Use DefaultAzureCredential for role-based auth if no API key provided
+    if azure_openai_api_key:
+        azure_openai = AzureOpenAI(
+            azure_endpoint=azure_openai_endpoint,
+            api_version='2024-12-01-preview',
+            api_key=azure_openai_api_key)
+    else:
+        from azure.identity import get_bearer_token_provider
+        token_provider = get_bearer_token_provider(
+            DefaultAzureCredential(managed_identity_client_id=user_assigned_managed_identity_client_id),
+            'https://cognitiveservices.azure.com/.default')
+        azure_openai = AzureOpenAI(
+            azure_endpoint=azure_openai_endpoint,
+            api_version='2024-12-01-preview',
+            azure_ad_token_provider=token_provider)
 
 # VAD
 vad_iterator = None
@@ -477,6 +488,9 @@ def handleWsConnection():
 def handleWsMessage(message):
     client_id = uuid.UUID(message.get('clientId'))
     path = message.get('path')
+    if client_id not in client_contexts:
+        print(f"Warning: Client context not found for {client_id}, ignoring message.")
+        return
     client_context = client_contexts[client_id]
     if path == 'api.audio':
         chat_initiated = client_context['chat_initiated']
@@ -559,11 +573,16 @@ def refreshIceToken() -> None:
                     headers={'Ocp-Apim-Subscription-Key': speech_key})
         else:
             if enable_token_auth_for_speech:
-                while not speech_token:
-                    time.sleep(0.2)
-                ice_token_response = requests.get(
-                    f'https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1',
-                    headers={'Authorization': f'Bearer {speech_token}'})
+                # Get a fresh Azure AD token for the ICE request
+                credential = DefaultAzureCredential(managed_identity_client_id=user_assigned_managed_identity_client_id)
+                token = credential.get_token('https://cognitiveservices.azure.com/.default')
+                ice_url = f'https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1'
+                # Format token as aad#{resource}#{token} like private endpoint does
+                formatted_token = f'aad#{speech_resource_url}#{token.token}'
+                print(f"ICE token request URL: {ice_url}")
+                print(f"Using formatted aad token")
+                headers = {'Authorization': f'Bearer {formatted_token}'}
+                ice_token_response = requests.get(ice_url, headers=headers)
             else:
                 ice_token_response = requests.get(
                     f'https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1',
@@ -571,7 +590,11 @@ def refreshIceToken() -> None:
         if ice_token_response.status_code == 200:
             ice_token = ice_token_response.text
         else:
-            raise Exception(f"Failed to get ICE token. Status code: {ice_token_response.status_code}")
+            error_detail = ice_token_response.text if ice_token_response.text else "Empty response body"
+            print(f"ICE token request failed. Status: {ice_token_response.status_code}")
+            print(f"Response headers: {dict(ice_token_response.headers)}")
+            print(f"Response body: {error_detail}")
+            raise Exception(f"Failed to get ICE token. Status code: {ice_token_response.status_code}, Detail: {error_detail}")
         time.sleep(60 * 60 * 24)  # Refresh the ICE token every 24 hours
 
 
@@ -583,6 +606,12 @@ def refreshSpeechToken() -> None:
         if speech_private_endpoint:
             credential = DefaultAzureCredential(managed_identity_client_id=user_assigned_managed_identity_client_id)
             token = credential.get_token('https://cognitiveservices.azure.com/.default')
+            speech_token = f'aad#{speech_resource_url}#{token.token}'
+        elif enable_token_auth_for_speech:
+            # Role-based authentication without private endpoint
+            credential = DefaultAzureCredential(managed_identity_client_id=user_assigned_managed_identity_client_id)
+            token = credential.get_token('https://cognitiveservices.azure.com/.default')
+            # Use aad#{resource}#{token} format for Speech SDK
             speech_token = f'aad#{speech_resource_url}#{token.token}'
         else:
             speech_token = requests.post(

@@ -73,6 +73,7 @@ def build_docker_image(image_name: str, version: str, dockerfile_path: str = "Do
         return {
             "success": True,
             "image_tag": tag,
+            "platform": "linux/amd64",
             "stdout": result.stdout,
             "stderr": result.stderr
         }

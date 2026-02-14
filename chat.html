@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talking Avatar Chat Demo</title>
+    <title>MAHA - Microsoft Atlanta Hub Assistant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='image/favicon.ico') }}">
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
@@ -11,47 +11,75 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
 </head>
 <body>
-<h1>Talking Avatar Chat Demo</h1>
+  
+<div class="page-center">
+  <div class="content-wrap">
+  <div class="header-row">
+      <svg width="42" height="42" viewBox="0 0 42 42" role="img" aria-label="Microsoft logo">
+        <rect width="19" height="19" x="0" y="0" fill="#F25022"></rect>
+        <rect width="19" height="19" x="23" y="0" fill="#7FBA00"></rect>
+        <rect width="19" height="19" x="0" y="23" fill="#00A4EF"></rect>
+        <rect width="19" height="19" x="23" y="23" fill="#FFB900"></rect>
+      </svg>
+      <h1 style="margin: 0;">MAHA - Microsoft Atlanta Hub Assistant</h1>
+  </div>
 
-<input type="hidden" id="clientId" value="{{ client_id }}"></input>
-<input type="hidden" id="enableWebSockets" value="{{ enable_websockets }}"></input>
+  <input type="hidden" id="clientId" value="{{ client_id }}"></input>
+  <input type="hidden" id="enableWebSockets" value="{{ enable_websockets }}"></input>
 
-<div id="configuration">
-  <h2 style="background-color: white; width: 300px;">Chat Configuration</h2>
-  <label style="font-size: medium;" for="azureOpenAIDeploymentName">Azure OpenAI Deployment Name:</label>
-  <input id="azureOpenAIDeploymentName" type="text" size="32" value="gpt-5-chat" style="font-size: medium;" /><br />
-  <label style="font-size: medium;"  for="prompt">System Prompt:</label><br/>
-  <textarea id="prompt" style="max-width: 640px;">You are Meg, an AI assistant that helps people find information for Fluor Enterprises, Inc. Always respond with simple and conincise text without emojis and the special characters like :, !, * etc. Take a pause after special character. Please replace character '.' with 'point', if it is decimal number.</textarea>
+  <div id="configuration">
+  <h2 style="background-color: white; width: 300px;margin-top: 100px;text-decoration: underline;">Chat Configuration</h2>
+  <div class="form-row">
+    <label for="azureOpenAIDeploymentName">Azure OpenAI Deployment Name:</label>
+    <input id="azureOpenAIDeploymentName" type="text" size="32" value="gpt-5.2-chat" />
+  </div>
+  <div class="form-row-textarea">
+    <label for="prompt">System Prompt:</label>
+    <textarea id="prompt">You are MAHA Microsoft Atlanta Hub Assistant. The Microsoft Atlanta Hub located in the Microsoft Atlanta office at 200 17th St NW Atlanta GA 30363 in the South Building on the 9th floor. The floor layout is rectangular and every room is accessible from any other room. Directions must always start from the Reception Area and use right hand or left hand turns. Reception Area is the starting point. To the left of Reception First Coffee Station then Manufacturing Experience Zone then Innovation Factory then Retail Healthcare and Financial Services Experience Zone then Envisioning Theater then Ironwood then Hickory. To the right of Reception first Aspen then Birch then Cypress then Dogwood then Elm then Foxglove then Gingko then Dining Area then Hickory. Rooms and Zones are Envisioning Theater Innovation Factory Manufacturing Experience Zone Retail Healthcare and Financial Services Experience Zone Coffee Station Aspen Birch Cypress Dogwood Elm Foxglove Gingko Dining Area Ironwood and Hickory. Microsoft Atlanta Innovation Hub has director and four solution engineers on the floor. Mike Bell is the Director of Solution Engineering for the Atlanta Innovation Hub leading a team of Principal Solution Engineers who deliver customer transformation experiences. He is recognized for strengths in cross functional leadership program management and customer journey orchestration. He drives Hub modernization initiatives oversees demo and experience refresh efforts and leads retail industry community across the Americas. Chinmoy Chakraborty is a Principal Solution Engineer at the Atlanta Innovation Hub specializing in AI solutions agent development generative AI legacy modernization Azure architectures and quantum computing. He leads customer facing technical innovation delivers quantum security and AI presentations and builds rapid prototypes across industries. He is noted for deep skills in systems integration API management analytics and enterprise solution development. Blake Wotiz is a Principal Solution Engineer at the Atlanta Innovation Hub focused on AI strategy Copilot intelligent automation and modern workplace solutions. Blake partners closely with cross industry customers driving solution envisioning data aggregation and workflow automation. He supports full stack AI initiatives including custom agents and collaborates closely with Hub architects to guide customers from strategy to execution. Stefanie Jacobs is a Principal Solution Engineer at the Atlanta Innovation Hub focused on security architecture identity governance cloud security and AI solutions. She contributes to industry sessions Hub tours and cybersecurity experiences including war game engagements. Stefanie is recognized for thought leadership in zero trust data governance accessibility and global enterprise architecture. She also develops customer journey summaries and contributes to Hub wide reporting and planning. Stacey Jones is a Principal Solution Engineer at the Atlanta Innovation Hub specializing in data architecture analytics cloud migration AI solutions and rapid prototyping. She supports customer engagements across multiple industries and contributes to Hub processes including branding facilities planning and the Hub engagement closeout framework. When a visitor asks for directions to any room or zone, generate a clear step by step instruction starting from the Reception Area using left right turns and landmarks. Example: From the Reception Area turn left towards the Coffee Station then continue straight past the Manufacturing Experience Zone. The Innovation Factory will be just after Manufacturing Experience Zone. Rules - Always start from Reception Area. Use left or right hand directions only. Mention intermediate landmarks for clarity. Keep instructions short and conversational. When you reach destination do not mentioned the room is either on right or left hand side. Always respond with simple and conincise text without emojis and the special characters like :, !, * etc. For decimal number say 'point' instead of character '.'.</textarea>
+  </div>
   <div style="background-color: white; width: 300px;">
     <input type="checkbox" id="enableOyd" onchange="window.updataEnableOyd()">Enable On Your Data</input><br />
   </div>
   <br />
 
   <div id="cogSearchConfig" hidden="hidden">
-    <label style="font-size: medium;" for="azureCogSearchIndexName">Azure Cognitive Search Index Name:</label>
-    <input id="azureCogSearchIndexName" type="text" size="32" style="font-size: medium;" /><br />
-    <br />
+    <div class="form-row">
+      <label for="azureCogSearchIndexName">Azure Cognitive Search Index Name:</label>
+      <input id="azureCogSearchIndexName" type="text" size="32" />
+    </div>
   </div>
 
-  <h2 style="background-color: white; width: 300px;">Speech Configuration</h2>
-  <label style="font-size: medium;" for="sttLocale">STT Locale(s):</label>
-  <input id="sttLocales" type="text" size="64" style="font-size: medium;" value="en-US"></input><br />
-  <label style="font-size: medium;" for="ttsVoice">TTS Voice:</label>
-  <input id="ttsVoice" type="text" size="32" style="font-size: medium;" value="en-US-AvaMultilingualNeural"></input><br />
-  <label style="font-size: medium;" for="customVoiceEndpointId">Custom Voice Deployment ID (Endpoint ID):</label>
-  <input id="customVoiceEndpointId" type="text" size="32" style="font-size: medium;" value=""></input><br />
-  <label style="font-size: medium;" for="personalVoiceSpeakerProfileID">Personal Voice Speaker Profile ID:</label>
-  <input id="personalVoiceSpeakerProfileID" type="text" size="32" style="font-size: medium;" value=""></input><br />
+  <h2 style="background-color: white; width: 300px;text-decoration: underline;">Speech Configuration</h2>
+  <div class="form-row">
+    <label for="sttLocale">STT Locale(s):</label>
+    <input id="sttLocales" type="text" size="64" value="en-US" />
+  </div>
+  <div class="form-row">
+    <label for="ttsVoice">TTS Voice:</label>
+    <input id="ttsVoice" type="text" size="32" value="en-US-AvaMultilingualNeural" />
+  </div>
+  <div class="form-row">
+    <label for="customVoiceEndpointId">Custom Voice Deployment ID (Endpoint ID):</label>
+    <input id="customVoiceEndpointId" type="text" size="32" value="" />
+  </div>
+  <div class="form-row">
+    <label for="personalVoiceSpeakerProfileID">Personal Voice Speaker Profile ID:</label>
+    <input id="personalVoiceSpeakerProfileID" type="text" size="32" value="" />
+  </div>
   <div style="background-color: white; width: 300px;">
     <input type="checkbox" id="continuousConversation" checked>Continuous Conversation</input><br />
   </div>
   <br />
 
-  <h2 style="background-color: white; width: 300px;">Avatar Configuration</h2>
-  <label style="font-size: medium;" for="talkingAvatarCharacter">Avatar Character:</label>
-  <input id="talkingAvatarCharacter" type="text" size="16" style="font-size: medium;" value="meg"></input><br />
-  <label style="font-size: medium;" for="talkingAvatarStyle">Avatar Style:</label>
-  <input id="talkingAvatarStyle" type="text" size="16" style="font-size: medium;" value="formal"></input><br />
+  <h2 style="background-color: white; width: 300px;text-decoration: underline;">Avatar Configuration</h2>
+  <div class="form-row">
+    <label for="talkingAvatarCharacter">Avatar Character:</label>
+    <input id="talkingAvatarCharacter" type="text" size="16" value="meg" />
+  </div>
+  <div class="form-row">
+    <label for="talkingAvatarStyle">Avatar Style:</label>
+    <input id="talkingAvatarStyle" type="text" size="16" value="formal" />
+  </div>
   <div style="background-color: white; width: 200px;">
     <input type="checkbox" id="customizedAvatar">Custom Avatar</input><br />
   </div>
@@ -64,11 +92,17 @@
   <br />
 </div>
 
-<button id="startSession" onclick="window.startSession()">Open Avatar Session</button>
-<button id="microphone" onclick="window.microphone()" disabled>Start Microphone</button>
-<button id="stopSpeaking" onclick="stopSpeaking()" disabled>Stop Speaking</button>
-<button id="clearChatHistory" onclick="window.clearChatHistory()">Clear Chat History</button>
-<button id="stopSession" onclick="window.stopSession()" disabled>Close Avatar Session</button>
+<div class="button-row">
+  <button id="startSession" onclick="window.startSession()">Open Avatar Session</button>
+  <button id="microphone" onclick="window.microphone()" disabled>Start Microphone</button>
+  <button id="stopSpeaking" onclick="stopSpeaking()" disabled>Stop Speaking</button>
+  <button id="clearChatHistory" onclick="window.clearChatHistory()">Clear Chat History</button>
+  <button id="stopSession" onclick="window.stopSession()" disabled>Close Avatar Session</button>
+</div>
+
+</div>
+
+</div>
 
 <div id="videoContainer" style="position: relative; max-width: 1800px;">
   <div id="overlayArea" style="position: absolute; left: 75%;">
@@ -92,9 +126,11 @@
   <div id="remoteVideo"></div>
 </div>
 
-<div id="showTypeMessageCheckbox">
-  <input type="checkbox" id="showTypeMessage" onchange="window.updateTypeMessageBox()" disabled>Type Message</input><br />
+<div class="content-wrap">
+  <div id="showTypeMessageCheckbox">
+    <input type="checkbox" id="showTypeMessage" onchange="window.updateTypeMessageBox()" disabled>Type Message</input><br />
+  </div>
+  <textarea id="userMessageBox" style="max-width: 960px; height: 40px" hidden></textarea><br/>
 </div>
-<textarea id="userMessageBox" style="max-width: 960px; height: 40px" hidden></textarea><br/>
 </body>
 </html>
